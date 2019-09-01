@@ -57,9 +57,24 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
-	// Your code here.
-	return 0;
+    // Your code here.ex11
+    uint32_t * ebp = (uint32_t *)read_ebp();
+    while(ebp !=0){
+        cprintf("ebp %08x",ebp);
+        uint32_t eip = ebp[1];
+        cprintf("  eip %08x  args",eip);
+        uint32_t *args = ebp+2;
+        for(int i = 0 ; i<5 ; ++i)
+            cprintf("  %08x",args[i]);
+        cputchar('\n');
+        struct Eipdebuginfo info;
+        debuginfo_eip(eip,&info);
+        cprintf("%s:%d: %.*s+%d\n",info.eip_file,info.eip_line,info.eip_fn_namelen,info.eip_fn_name,eip - info.eip_fn_addr);
+        ebp = (uint32_t *) ebp[0];
+    }
+    return 0;
 }
+
 
 
 
@@ -114,7 +129,6 @@ monitor(struct Trapframe *tf)
 
 	cprintf("Welcome to the JOS kernel monitor!\n");
 	cprintf("Type 'help' for a list of commands.\n");
-
 
 	while (1) {
 		buf = readline("K> ");
