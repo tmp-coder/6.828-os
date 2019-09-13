@@ -6,11 +6,13 @@
 #include <inc/memlayout.h>
 #include <inc/assert.h>
 #include <inc/x86.h>
+#include <inc/string.h>
 
 #include <kern/console.h>
 #include <kern/monitor.h>
 #include <kern/kdebug.h>
-
+#include <kern/pmap.h>
+// #include <stdio.h>
 #define CMDBUF_SIZE	80	// enough for one VGA text line
 
 
@@ -24,6 +26,8 @@ struct Command {
 static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
+	{ "backtrace","Display the backtrace",mon_backtrace},
+	{ "showmapping","show va mappings",mon_showmapping},
 };
 
 /***** Implementations of basic kernel monitor commands *****/
@@ -54,9 +58,14 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 	return 0;
 }
 
+
 int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
+	// cprintf("argc = %x \n",argc);
+	// uint32_t i=0;
+	// for( ; argv[i] ; ++i)
+	// 	cprintf("argv[%d] = %s\n",i,argv[i]);
     // Your code here.ex11
     uint32_t * ebp = (uint32_t *)read_ebp();
     while(ebp !=0){
@@ -75,6 +84,20 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
     return 0;
 }
 
+int
+mon_showmapping(int argc, char **argv, struct Trapframe *tf)
+{
+	assert(argc >=3);
+	uint32_t start_va = strtol(argv[1],0,16);
+	uint32_t end_va = strtol(argv[2],0,16);
+	start_va = ROUNDDOWN(start_va,PGSIZE);
+	end_va = ROUNDDOWN(end_va,PGSIZE);
+	for( ; start_va < end_va ; start_va += PGSIZE){
+		pte_t* pte = pgdir_walk(kern_pgdir,(void *)start_va,0);
+		cprintf("*va = %x : *pte = %x\n ,perm = %x\n",start_va,PTX( pte?*pte:0),*pte & 0xfff);
+	}
+    return 0;
+}
 
 
 
