@@ -95,7 +95,10 @@ boot_alloc(uint32_t n)
 	// to any kernel code or global variables.
 	if (!nextfree) {
 		extern char end[];
-		nextfree = ROUNDUP((char *) end, PGSIZE);
+		extern char edata[];
+		// cprintf("end = %x\n",end);
+		// cprintf("edata = %x\n",edata);
+		nextfree = ROUNDUP((char *) end, PGSIZE)+PGSIZE;
 	}
 
 	// Allocate a chunk large enough to hold 'n' bytes, then update
@@ -141,8 +144,9 @@ mem_init(void)
 	//////////////////////////////////////////////////////////////////////
 	// create initial page directory.
 	kern_pgdir = (pde_t *) boot_alloc(PGSIZE);
+	// cprintf("kern_pgdir = %x\n",kern_pgdir);
 	memset(kern_pgdir, 0, PGSIZE);
-
+	// cprintf("affter memset kern_pgdir = %x\n",kern_pgdir);
 	//////////////////////////////////////////////////////////////////////
 	// Recursively insert PD in itself as a page table, to form
 	// a virtual page table at virtual address UVPT.
@@ -166,7 +170,9 @@ mem_init(void)
 	//////////////////////////////////////////////////////////////////////
 	// Make 'envs' point to an array of size 'NENV' of 'struct Env'.
 	// LAB 3: Your code here.
-
+	const uint32_t env_sz = NENV * sizeof(struct Env);
+	envs = (struct Env *)boot_alloc(env_sz);
+	memset(envs,0,env_sz);
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
 	// up the list of free physical pages. Once we've done so, all further
@@ -198,7 +204,7 @@ mem_init(void)
 	//    - the new image at UENVS  -- kernel R, user R
 	//    - envs itself -- kernel RW, user NONE
 	// LAB 3: Your code here.
-
+	boot_map_region(kern_pgdir,UENVS,ROUNDUP(env_sz,PGSIZE),PADDR(envs),PTE_U);
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
 	// stack.  The kernel stack grows down from virtual address KSTACKTOP.
