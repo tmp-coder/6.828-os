@@ -73,9 +73,9 @@ trap_init(void)
 	void NMI();
 	SETGATE(idt[T_NMI],0,GD_KT,NMI,0);
 	void BRKPT();
-	SETGATE(idt[T_BRKPT],0,GD_KT,BRKPT,0);
+	SETGATE(idt[T_BRKPT],1,GD_KT,BRKPT,3);
 	void OFLOW();
-	SETGATE(idt[T_OFLOW],0,GD_KT,OFLOW,0);
+	SETGATE(idt[T_OFLOW],1,GD_KT,OFLOW,0);
 	void BOUND();
 	SETGATE(idt[T_BOUND],0,GD_KT,BOUND,0);
 	void ILLOP();
@@ -104,8 +104,8 @@ trap_init(void)
 	SETGATE(idt[T_SIMDERR],0,GD_KT,SIMDERR,0);
 	void SYSCALL();
 	SETGATE(idt[T_SYSCALL],1,GD_KT,SYSCALL,3);
-	void DEFAULT();
-	SETGATE(idt[T_DEFAULT],0,GD_KT,DEFAULT,0);
+	// void DEFAULT();
+	// SETGATE(idt[T_DEFAULT],0,GD_KT,DEFAULT,0);
 	// Per-CPU setup 
 	trap_init_percpu();
 }
@@ -184,7 +184,19 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
-
+	switch (tf->tf_trapno)
+	{
+	case T_PGFLT:
+		/* code */
+		page_fault_handler(tf);
+		return;
+	case T_BRKPT:
+	case T_DEBUG:
+		monitor(tf);
+		return;
+	default:
+		break;
+	}
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
 	if (tf->tf_cs == GD_KT)
@@ -241,11 +253,24 @@ page_fault_handler(struct Trapframe *tf)
 
 	// Read processor's CR2 register to find the faulting address
 	fault_va = rcr2();
-
-	// Handle kernel-mode page faults.
-
-	// LAB 3: Your code here.
-
+	// uint32_t map_va = ROUNDDOWN(fault_va,PGSIZE);
+	// // Handle kernel-mode page faults.
+	// struct PageInfo *pp = page_alloc(ALLOC_ZERO);
+	// if(!pp)
+	// 	panic("out of memory");
+		
+	// // LAB 3: Your code here.
+	// if((tf ->tf_cs &3) == 3){//user
+	// 	assert(curenv);
+	// 	int err =page_insert(curenv->env_pgdir,pp,(void*)map_va,PTE_W|PTE_U);
+	// 	if(err <0)
+	// 		cprintf("page_insert : %e\n",err);
+	// }else{
+	// 	int err = page_insert(kern_pgdir,pp,(void *)map_va,PTE_W);
+	// 	if(err <0)
+	// 		cprintf("page_insert : %e\n",err);
+		
+	// }
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.
 
