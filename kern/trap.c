@@ -263,24 +263,11 @@ page_fault_handler(struct Trapframe *tf)
 
 	// Read processor's CR2 register to find the faulting address
 	fault_va = rcr2();
-	// uint32_t map_va = ROUNDDOWN(fault_va,PGSIZE);
 	// // Handle kernel-mode page faults.
-	// struct PageInfo *pp = page_alloc(ALLOC_ZERO);
-	// if(!pp)
-	// 	panic("out of memory");
-		
-	// // LAB 3: Your code here.
-	// if((tf ->tf_cs &3) == 3){//user
-	// 	assert(curenv);
-	// 	int err =page_insert(curenv->env_pgdir,pp,(void*)map_va,PTE_W|PTE_U);
-	// 	if(err <0)
-	// 		cprintf("page_insert : %e\n",err);
-	// }else{
-	// 	int err = page_insert(kern_pgdir,pp,(void *)map_va,PTE_W);
-	// 	if(err <0)
-	// 		cprintf("page_insert : %e\n",err);
-		
-	// }
+	if((tf->tf_cs & 3) != 3)
+	{
+		panic("kernel page fault");
+	}
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.
 

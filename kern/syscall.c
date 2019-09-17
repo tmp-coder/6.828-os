@@ -19,20 +19,7 @@ sys_cputs(const char *s, size_t len)
 {
 	// Check that the user has permission to read memory [s, s+len).
 	// Destroy the environment if not.
-	int no_perm =0;
-	uint32_t p = (uint32_t)ROUNDDOWN(s,PGSIZE);
-	uint32_t endp =(uint32_t)ROUNDUP(s+len,PGSIZE);
-	
-	while (p<endp)
-	{
-		pte_t * pte =NULL;
-		if(!page_lookup(curenv->env_pgdir,(void *)p,&pte) || !(*pte & PTE_U))
-		{
-			env_destroy(curenv);
-			break;
-		}
-		p+=PGSIZE;
-	}
+	user_mem_assert(curenv,s,len,0);
 	
 	// LAB 3: Your code here.
 
