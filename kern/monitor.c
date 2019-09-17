@@ -16,7 +16,7 @@
 #include <kern/trap.h>
 
 #define CMDBUF_SIZE	80	// enough for one VGA text line
-
+#define TF	0x100
 
 struct Command {
 	const char *name;
@@ -30,6 +30,8 @@ static struct Command commands[] = {
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
 	{ "backtrace","Display the backtrace",mon_backtrace},
 	{ "showmapping","show va mappings",mon_showmapping},
+	{ "continue", "exit monitor",mon_continue},
+	{ "c", "exit monitor",mon_continue},
 };
 
 /***** Implementations of basic kernel monitor commands *****/
@@ -101,6 +103,13 @@ mon_showmapping(int argc, char **argv, struct Trapframe *tf)
     return 0;
 }
 
+int
+mon_continue(int argc, char **argv, struct Trapframe *tf)
+{	
+
+   tf->tf_eflags &= ~TF;
+   return -1;
+}
 
 
 /***** Kernel monitor command interpreter *****/

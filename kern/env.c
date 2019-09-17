@@ -366,7 +366,7 @@ load_icode(struct Env *e, uint8_t *binary)
 		}
 	}
 	//mapstack on env_run maybe better
-	// region_alloc(e,(void *)(USTACKTOP-PGSIZE),PGSIZE);
+	region_alloc(e,(void *)(USTACKTOP-PGSIZE),PGSIZE);
 	lcr3(PADDR(kern_pgdir));
 	e->env_tf.tf_eip= ((struct Elf*)binary)->e_entry;
 	// Now map one page for the program's initial stack
@@ -527,8 +527,6 @@ env_run(struct Env *e)
 	curenv ->env_status = ENV_RUNNING;
 	curenv->env_runs++;
 	lcr3(PADDR(curenv->env_pgdir));
-	// map user stack
-	region_alloc(e,(void *)(USTACKTOP-PGSIZE),PGSIZE);
 	env_pop_tf(&curenv->env_tf);
 	// panic("env_run not yet implemented");
 }
