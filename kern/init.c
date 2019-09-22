@@ -74,6 +74,7 @@ boot_aps(void)
 
 	// Write entry code to unused memory at MPENTRY_PADDR
 	code = KADDR(MPENTRY_PADDR);
+	// cprintf("code size : %x\n", mpentry_end - mpentry_start);
 	memmove(code, mpentry_start, mpentry_end - mpentry_start);
 
 	// Boot each AP one at a time

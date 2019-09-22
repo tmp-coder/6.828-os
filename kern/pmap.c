@@ -218,7 +218,7 @@ mem_init(void)
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
-	boot_map_region(kern_pgdir,KSTACKTOP - KSTKSIZE,KSTKSIZE,PADDR(bootstack),PTE_W);
+	// boot_map_region(kern_pgdir,KSTACKTOP - KSTKSIZE,KSTKSIZE,PADDR(bootstack),PTE_W);
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
 	// Ie.  the VA range [KERNBASE, 2^32) should map to
@@ -279,7 +279,12 @@ mem_init_mp(void)
 	//     Permissions: kernel RW, user NONE
 	//
 	// LAB 4: Your code here:
-
+	int i;
+	uint32_t va = KSTACKTOP;
+	for(i=0 ; i<NCPU ; ++i){
+		va -= KSTKSIZE + KSTKGAP;
+		boot_map_region(kern_pgdir,(uintptr_t)(va+KSTKGAP),KSTKSIZE,(physaddr_t)PADDR(percpu_kstacks[i]),PTE_W);
+	}
 }
 
 // --------------------------------------------------------------
@@ -329,6 +334,9 @@ page_init(void)
 	size_t i = 1;
 	// assert(i == 1);
 	for( ; i < npages_basemem ; ++i){
+		physaddr_t page_pa = page2pa(&pages[i]);
+		if(page_pa <= MPENTRY_PADDR &&  MPENTRY_PADDR <= page_pa+PGSIZE )
+			continue;
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
@@ -341,7 +349,10 @@ page_init(void)
 	// cprintf("PADDR(va_pe) = %x\n",PADDR(va_pe));
 	// cprintf("EXTPHYSEM = %x \n",EXTPHYSMEM);
 	for (i = PADDR(va_page_end)/PGSIZE; i < npages; i++) {        
-        pages[i].pp_ref = 0;
+        physaddr_t page_pa = page2pa(&pages[i]);
+		if(page_pa <= MPENTRY_PADDR &&  MPENTRY_PADDR <= page_pa+PGSIZE )
+			continue;
+		pages[i].pp_ref = 0;
         pages[i].pp_link = page_free_list;
         page_free_list = &pages[i];
     }
@@ -610,7 +621,15 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
-	panic("mmio_map_region not implemented");
+	size = ROUNDUP(size,PGSIZE);
+	if(base + size > MMIOLIM)
+		panic("out of MMIOLMT");
+
+	boot_map_region(kern_pgdir,base,size,pa,PTE_PCD|PTE_PWT|PTE_W);
+	// panic("mmio_map_region not implemented");
+	void * ret = (void *)base;
+	base += size;
+	return ret;
 }
 
 static uintptr_t user_mem_check_addr;
