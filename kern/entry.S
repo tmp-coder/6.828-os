@@ -65,6 +65,17 @@ entry:
 	# Now paging is enabled, but we're still running at a low EIP
 	# (why is this okay?).  Jump up above KERNBASE before entering
 	# C code.
+
+	# becouse 
+	# quote :
+	# entry_pgdir translates virtual addresses in the range 
+	# 0xf0000000 through 0xf0400000 to physical addresses 
+	# 0x00000000 through 0x00400000,
+	# as well as virtual addresses 0x00000000 through 0x00400000 
+	# to physical addresses 0x00000000 through 0x00400000.
+
+	# 0x100000 -> 0x100000
+	# 0xf010000 -> 0x100000s
 	mov	$relocated, %eax
 	jmp	*%eax
 relocated:

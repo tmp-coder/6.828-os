@@ -27,13 +27,15 @@ SECTIONS
 		*(.data)
 	}
 
-	PROVIDE(edata = .);
 
 	.bss : {
-		*(.bss)
+		PROVIDE(edata = .);
+		*(.dynbss)
+		*(.bss .bss.*)
+		*(COMMON)
+		PROVIDE(end = .);
 	}
 
-	PROVIDE(end = .);
 
 
 	/* Place debugging symbols so that they can be found by
