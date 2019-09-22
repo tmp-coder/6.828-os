@@ -30,8 +30,35 @@ sched_yield(void)
 
 	// LAB 4: Your code here.
 
-	// sched_halt never returns
-	sched_halt();
+	struct Env * e = NULL;
+	
+	int start = curenv ? curenv - envs : 0;
+	int i;
+	for(i = start; i<NENV ; ++i){
+		if(envs[i].env_status == ENV_RUNNABLE){
+			e = &envs[i];
+			break;
+		}
+	}
+	if(!e){
+		for(int i =0 ; i<start ; ++i)
+			if(envs[i].env_status == ENV_RUNNABLE){
+				e = &envs[i];
+				break;
+			}	
+	}
+	if(!e){
+		if(curenv && curenv->env_status==ENV_RUNNING && curenv->env_cpunum == cpunum())
+			e = curenv;
+	}
+	if(e){
+		e ->env_cpunum = cpunum();
+		cprintf("cpu[%x] : env[%x]\n",e->env_cpunum,e->env_id);
+		env_run(e);
+	}else{
+		// sched_halt never returns
+		sched_halt();
+	}
 }
 
 // Halt this CPU when there is nothing to do. Wait until the
