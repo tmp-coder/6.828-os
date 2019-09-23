@@ -217,6 +217,9 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	//   parameters for correctness.
 	//   Use the third argument to page_lookup() to
 	//   check the current permissions on the page.
+
+	// cprintf("sys_page_map : \nsrcenvid[%x],dstenvid[%x]\n srcva[%x],dstva[%x]\n perm = %x\n",srcenvid,dstenvid,srcva,dstva,perm);
+
 	if(check_uva(srcva) || check_uva(dstva))
 		return -E_INVAL;
 	struct Env *src = NULL, *dst = NULL;
@@ -230,9 +233,10 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	// struct PapgInfo * dstpp = page_lookup(dst->env_pgdir,dstva,&dst_pte);
 	
 	//check perm
-	if((srcpp == NULL) ||(perm & PTE_W) != (*src_pte & PTE_W) || (perm & PTE_U) != PTE_U )
+	if((srcpp == NULL) || (perm & PTE_U) != PTE_U )
 		return -E_INVAL;
-
+	if(!(*src_pte & PTE_W) &&(perm & PTE_W))
+		return -E_INVAL;
 	return page_insert(dst->env_pgdir,srcpp,dstva,perm);
 	// LAB 4: Your code here.
 }

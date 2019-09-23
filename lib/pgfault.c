@@ -6,6 +6,7 @@
 
 #include <inc/lib.h>
 
+#define curenvid 0
 
 // Assembly language pgfault entrypoint defined in lib/pfentry.S.
 extern void _pgfault_upcall(void);
@@ -27,11 +28,17 @@ set_pgfault_handler(void (*handler)(struct UTrapframe *utf))
 	int r;
 
 	if (_pgfault_handler == 0) {
+		
+		int r;
+		if((r = sys_page_alloc(curenvid,(void *)(UXSTACKTOP-PGSIZE),PTE_W|PTE_U|PTE_P)) <0)
+			panic("sys_page_alloc :%e",r);
+		sys_env_set_pgfault_upcall(curenvid,_pgfault_upcall);
 		// First time through!
 		// LAB 4: Your code here.
-		panic("set_pgfault_handler not implemented");
+		// panic("set_pgfault_handler not implemented");
 	}
 
 	// Save handler pointer for assembly to call.
 	_pgfault_handler = handler;
+	// if()
 }

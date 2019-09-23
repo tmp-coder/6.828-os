@@ -34,23 +34,23 @@ sched_yield(void)
 	
 	int start = curenv ? curenv - envs +1 : 0;
 	int i = start;
+	// cprintf("start = %d \n",start);
 	do
 	{
-		if(i >= NENV)
-			i-= NENV;
 		if(envs[i].env_status == ENV_RUNNABLE){
 			e = &envs[i];
 			break;
 		}
+		i = (i +1) & ( NENV -1);
 	} while (i != start);
 	
-
+	// cprintf("scheduled scc !\n");
 	if(!e){
-		if(curenv && curenv->env_status==ENV_RUNNING && curenv->env_cpunum == cpunum())
+		if(curenv && curenv->env_status==ENV_RUNNING)
 			e = curenv;
 	}
 	if(e){
-		e ->env_cpunum = cpunum();
+		// e ->env_cpunum = cpunum();
 		// cprintf("cpu[%x] : env[%x]\n",e->env_cpunum,e->env_id);
 		env_run(e);
 	}else{
