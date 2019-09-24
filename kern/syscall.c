@@ -304,9 +304,47 @@ static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
 	// LAB 4: Your code here.
-	panic("sys_ipc_try_send not implemented");
+	struct Env* recv = NULL;
+	int error_code = 0;
+	if((error_code = envid2env(envid, &recv, 0)) < 0)
+		return error_code;
+	if(!recv->env_ipc_recving)
+		return -E_IPC_NOT_RECV;
+	recv->env_ipc_perm = 0;
+	recv->env_ipc_from = curenv->env_id;
+	recv->env_ipc_value = value;
+	// when to do the following check
+	if((uintptr_t)srcva < UTOP && (uintptr_t)(recv->env_ipc_dstva) < UTOP)
+	{
+		if(((uint32_t)srcva & (PGSIZE -1)))
+			return -E_INVAL;
+		// check perm, is PTE_U and PTE_P already set?
+		if(((perm & PTE_U) == 0) || ((perm & PTE_P) == 0) )
+			return -E_INVAL;
+		// is perm set with other perms that should never be set?
+		// bit-and ~PTE_SYSCALL clear the four bits
+		if((perm & ~PTE_SYSCALL) != 0)
+			return -E_INVAL;
+		pte_t* pte_addr = NULL;
+		struct PageInfo* page = NULL;
+		page = page_lookup(curenv->env_pgdir, srcva, &pte_addr);
+		// srcva is not mapped
+		if(page == NULL)
+			return -E_INVAL;
+		// the page is read-only, but perm contains write
+		if((perm & PTE_W) && !((*pte_addr) & PTE_W))
+			return -E_INVAL;
+		// Now start to do the real stuff
+		if((error_code = page_insert(recv->env_pgdir, page, recv->env_ipc_dstva, perm)) < 0)
+			return error_code;
+		recv->env_ipc_perm = perm;
+	}
+	// unblock and make it running
+	recv->env_ipc_recving = 0;
+	recv->env_tf.tf_regs.reg_eax = 0;
+	recv->env_status = ENV_RUNNABLE;
+	return 0;
 }
-
 // Block until a value is ready.  Record that you want to receive
 // using the env_ipc_recving and env_ipc_dstva fields of struct Env,
 // mark yourself not runnable, and then give up the CPU.
@@ -322,7 +360,16 @@ static int
 sys_ipc_recv(void *dstva)
 {
 	// LAB 4: Your code here.
-	panic("sys_ipc_recv not implemented");
+	if((uintptr_t)dstva < UTOP && (ROUNDDOWN((uintptr_t)dstva, PGSIZE) != (uintptr_t)dstva))
+		return -E_INVAL;
+	// Only when dstva is below UTOP, record it in struct Env
+	if((uintptr_t)dstva < UTOP)
+		curenv->env_ipc_dstva = dstva;
+	curenv->env_ipc_recving = true;
+	// mark yourself as not runnable, give up CPU
+	curenv->env_status = ENV_NOT_RUNNABLE;
+	sched_yield();
+	// This sentence will never be executed
 	return 0;
 }
 
@@ -362,8 +409,10 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 			sys_yield();
 			return 0;
 		case SYS_ipc_try_send:
+			return sys_ipc_try_send((envid_t)a1,a2,(void *)a3,a4);
+
 		case SYS_ipc_recv:
-			return -E_INVAL;
+			return sys_ipc_recv((void *)a1);
 	default:
 		return -E_INVAL;
 	}

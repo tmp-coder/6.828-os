@@ -110,10 +110,44 @@ trap_init(void)
 	void SIMDERR();
 	SETGATE(idt[T_SIMDERR],0,GD_KT,SIMDERR,0);
 	void SYSCALL();
-	SETGATE(idt[T_SYSCALL],1,GD_KT,SYSCALL,3);
+	SETGATE(idt[T_SYSCALL],0,GD_KT,SYSCALL,3);
 	// void DEFAULT();
 	// SETGATE(idt[T_DEFAULT],0,GD_KT,DEFAULT,0);
 	// Per-CPU setup 
+
+	void irq0();
+	SETGATE(idt[IRQ_OFFSET+0], 0, GD_KT, irq0, 3);
+	void irq1();
+	SETGATE(idt[IRQ_OFFSET+1], 0, GD_KT, irq1, 3);
+	void irq2();
+	SETGATE(idt[IRQ_OFFSET+2], 0, GD_KT, irq2, 3);
+	void irq3();
+	SETGATE(idt[IRQ_OFFSET+3], 0, GD_KT, irq3, 3);
+	void irq4();
+	SETGATE(idt[IRQ_OFFSET+4], 0, GD_KT, irq4, 3);
+	void irq5();
+	SETGATE(idt[IRQ_OFFSET+5], 0, GD_KT, irq5, 3);
+	void irq6();
+	SETGATE(idt[IRQ_OFFSET+6], 0, GD_KT, irq6, 3);
+	void irq7();
+	SETGATE(idt[IRQ_OFFSET+7], 0, GD_KT, irq7, 3);
+	void irq8();
+	SETGATE(idt[IRQ_OFFSET+8], 0, GD_KT, irq8, 3);
+	void irq9();
+	SETGATE(idt[IRQ_OFFSET+9], 0, GD_KT, irq9, 3);
+	void irq10();
+	SETGATE(idt[IRQ_OFFSET+10], 0, GD_KT, irq10, 3);
+	void irq11();
+	SETGATE(idt[IRQ_OFFSET+11], 0, GD_KT, irq11, 3);
+	void irq12();
+	SETGATE(idt[IRQ_OFFSET+12], 0, GD_KT, irq12, 3);
+	void irq13();
+	SETGATE(idt[IRQ_OFFSET+13], 0, GD_KT, irq13, 3);
+	void irq14();
+	SETGATE(idt[IRQ_OFFSET+14], 0, GD_KT, irq14, 3);
+	void irq15();
+	SETGATE(idt[IRQ_OFFSET+15], 0, GD_KT, irq15, 3);
+
 	trap_init_percpu();
 }
 
@@ -229,7 +263,11 @@ trap_dispatch(struct Trapframe *tf)
 	// Handle clock interrupts. Don't forget to acknowledge the
 	// interrupt using lapic_eoi() before calling the scheduler!
 	// LAB 4: Your code here.
-
+	if(tf->tf_trapno == IRQ_OFFSET + IRQ_TIMER){
+		lapic_eoi();
+		sched_yield();
+		return;
+	}
 	switch (tf->tf_trapno)
 	{
 	case T_PGFLT:
@@ -270,6 +308,7 @@ trap(struct Trapframe *tf)
 	// of GCC rely on DF being clear
 	asm volatile("cld" ::: "cc");
 
+	// asm volatile("cli");
 	// Halt the CPU if some other CPU has called panic()
 	extern char *panicstr;
 	if (panicstr)
